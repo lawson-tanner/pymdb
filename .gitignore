@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+
+# Media databases and bins are never committed: they carry real paths,
+# server names, project and show names. Point PYMDB_SAMPLES at them instead.
+tests/samples/
+*.mdb
+*.avb
+*.pmr
