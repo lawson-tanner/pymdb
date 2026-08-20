@@ -17,7 +17,7 @@ from collections import Counter, defaultdict
 from typing import (Any, Dict, Iterable, Iterator, List, Optional, Sequence, Union)
 
 from .bento import BentoContainer, NotABentoContainer, TOCEntry, std
-from .core import MDBObject, class_for
+from .core import CLASS_REGISTRY, MDBObject, class_for
 from .mobid import MobID, ShortUID
 from .objects import (Attribute, AttributeList, BinLink, ClassDescriptor, Header,
                       Locator, MediaDescriptor, MediaStreamLink, Mob,
@@ -46,6 +46,8 @@ class MDBFile(object):
         self._mobid_index: Optional[Dict[bytes, List[int]]] = None
         self._material_index: Optional[Dict[bytes, List[int]]] = None
         self._referrer_index: Optional[Dict[int, List[int]]] = None
+        self._class_map: Dict[str, type] = {}
+        self._declared_parents: Optional[Dict[str, Optional[str]]] = None
 
     # -- lifecycle ---------------------------------------------------------
     def close(self) -> None:
@@ -55,6 +57,8 @@ class MDBFile(object):
         self._mobid_index = None
         self._material_index = None
         self._referrer_index = None
+        self._class_map.clear()
+        self._declared_parents = None
 
     def __enter__(self) -> "MDBFile":
         return self
@@ -71,7 +75,7 @@ class MDBFile(object):
         entries = self.container.objects.get(object_id)
         if entries is None:
             return None
-        obj = class_for(self._class_id_of(entries))(self, object_id, entries)
+        obj = self.class_for_id(self._class_id_of(entries))(self, object_id, entries)
         self._objects[object_id] = obj
         return obj
 
@@ -80,6 +84,74 @@ class MDBFile(object):
         if obj is None:
             raise KeyError("no object 0x%x in this file" % object_id)
         return obj
+
+    def class_for_id(self, class_id: Optional[str]) -> type:
+        """The Python class to build for a 4CC, consulting the file itself.
+
+        A 4CC the library knows resolves straight from the registry.  One it
+        does not is looked up in *this file's* ``HEAD.ClassDictionary``, and
+        the nearest declared ancestor that the library does know is used
+        instead -- so an unrecognised ``CDCI`` subclass still reads as a
+        picture descriptor rather than as a bare :class:`~mdb.core.MDBObject`,
+        with its own properties still reachable by OMF name.
+
+        This is the whole reason the class dictionary is in the file: Media
+        Composer writes the inheritance so that a reader which has never heard
+        of a class can still place it.  Falling back to ``MDBObject`` when the
+        file has told us the answer would be throwing that away.
+        """
+        if not class_id:
+            return MDBObject
+        cached = self._class_map.get(class_id)
+        if cached is not None:
+            return cached
+        known = class_for(class_id)
+        if known is not MDBObject or class_id == "":
+            self._class_map[class_id] = known
+            return known
+        # a 4CC that differs only in case is Avid's own typo, not a new
+        # class: the dictionary of both reference samples declares both
+        # 'ASPI' and 'ASpi'.  Prefer the cased match over walking parents.
+        for known_id, cls in CLASS_REGISTRY.items():
+            if known_id.lower() == class_id.lower():
+                self._class_map[class_id] = cls
+                return cls
+        found = MDBObject
+        seen = {class_id}
+        parent = self._class_parents().get(class_id)
+        while parent and parent not in seen:
+            seen.add(parent)
+            candidate = class_for(parent)
+            if candidate is not MDBObject:
+                found = candidate
+                break
+            parent = self._class_parents().get(parent)
+        self._class_map[class_id] = found
+        return found
+
+    def _class_parents(self) -> Dict[str, Optional[str]]:
+        """``{4CC: parent 4CC}`` as this file's class dictionary declares it.
+
+        Built once.  ``CLSD`` and ``HEAD`` are both in the static registry, so
+        reading the dictionary never needs the dictionary -- but the map is
+        installed empty first anyway, so a damaged file that somehow made the
+        lookup re-entrant terminates instead of recursing.
+        """
+        if self._declared_parents is not None:
+            return self._declared_parents
+        self._declared_parents = {}
+        parents: Dict[str, Optional[str]] = {}
+        try:
+            for entry in self.class_dictionary:
+                four_cc = entry.class_4cc
+                if four_cc:
+                    parents[four_cc] = entry.parent_4cc
+        except Exception:
+            # a class dictionary we cannot read is a reason to fall back to
+            # MDBObject, never a reason to fail opening the file
+            parents = {}
+        self._declared_parents = parents
+        return parents
 
     def _class_id_of(self, entries: Sequence[TOCEntry]) -> Optional[str]:
         container = self.container

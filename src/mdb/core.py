@@ -108,6 +108,12 @@ class _PropertyMeta(type):
         cls._propertydefs_by_name = merged
         cls._propertydefs_by_omf = {p.omf_name: p for p in merged.values()}
 
+        structural: "Dict[str, None]" = {}
+        for base in reversed(cls.__mro__[1:]):
+            structural.update(dict.fromkeys(getattr(base, "_structural_properties", ())))
+        structural.update(dict.fromkeys(ns.get("structural_properties", ())))
+        cls._structural_properties = tuple(structural)
+
 
 class MDBObject(metaclass=_PropertyMeta):
     """One object: a set of TOC entries sharing an object ID.
@@ -122,6 +128,15 @@ class MDBObject(metaclass=_PropertyMeta):
     #: OMF 4CC; ``None`` on abstract bases
     class_id: Optional[str] = None
     propertydefs: Sequence[PropertyDef] = ()
+
+    #: OMF property names this class reads *structurally* rather than through
+    #: a :class:`PropertyDef` -- the parallel per-point, per-band and
+    #: per-keyframe columns, and the numerator/denominator pairs that make up
+    #: a rectangle.  They have no single sensible attribute name (there are
+    #: *n* of each), so a method assembles them instead; listing them here
+    #: keeps them visible to :meth:`known_properties` and to the coverage
+    #: tests, so a property cannot be quietly forgotten.
+    structural_properties: Sequence[str] = ()
 
     __slots__ = ("object_id", "_rootref", "_entries", "_cache", "__weakref__")
 
@@ -258,6 +273,11 @@ class MDBObject(metaclass=_PropertyMeta):
 
     def to_dict(self, deref: bool = False) -> Dict[str, Any]:
         return {n: (self._deref(v) if deref else v) for n, v in self.items()}
+
+    @classmethod
+    def known_properties(cls) -> "List[str]":
+        """Every OMF property name this class understands, typed or structural."""
+        return list(cls._propertydefs_by_omf) + list(cls._structural_properties)
 
     def type_of(self, omf_name: str) -> Optional[str]:
         """The OMF type name the file declares for ``omf_name``."""

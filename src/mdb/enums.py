@@ -11,7 +11,9 @@ from __future__ import annotations
 from typing import Dict, Optional
 
 __all__ = ["ATTR_KIND", "TRACK_TYPE", "PHYSICAL_MOB_TYPE", "USAGE_CODE",
-           "LAYOUT_TYPE", "COLOR_SITING", "label"]
+           "LAYOUT_TYPE", "COLOR_SITING", "EDGE_TYPE", "FILM_TYPE",
+           "INTERP_KIND", "EXTRAP_KIND", "PARAM_VALUE_TYPE",
+           "REFORMATTING_OPTION", "label"]
 
 #: ``omfi:AttrKind`` -- which ATTB value property is populated.  [V]
 #: 1/2/3 verified by co-occurrence with Int/String/Obj attributes; 4 verified
@@ -81,3 +83,62 @@ def label(table: Dict[int, str], value: Optional[int], name: str = "value") -> s
         return table[value]
     except (KeyError, TypeError):
         return "%s(%r)" % (name, value)
+
+
+#: ``omfi:EdgeType`` (OMF ``omfEdgeType_t``) on ``ECCP:CodeFormat``.  [I] from
+#: OMF 2.1 -- no ``ECCP`` object exists in either reference sample.
+EDGE_TYPE: Dict[int, str] = {
+    0: "null",
+    1: "keycode",
+    2: "ink",
+    3: "aux",
+}
+
+#: ``omfi:FilmType`` (OMF ``omfFilmType_t``) on ``ECCP:FilmKind``.  [I]
+FILM_TYPE: Dict[int, str] = {
+    0: "null",
+    1: "35mm",
+    2: "16mm",
+    3: "8mm",
+    4: "65mm",
+}
+
+#: Interpolation between control points, on ``PRCL:InterpKind`` and
+#: ``CTRL:InterpKind``.  [I] -- names follow pyavb's reading of the AVB
+#: container, where the same codes drive the same curves; no ``PRCL`` or
+#: ``CTRL`` object exists in either reference sample to check them against.
+INTERP_KIND: Dict[int, str] = {
+    0: "constant",
+    1: "linear",
+    2: "bezier",
+    3: "cubic",
+    4: "spline",
+}
+
+#: How a curve behaves outside its first and last control point, on
+#: ``PCRL:ExtrapKind`` (Avid's spelling).  [?] -- inferred by symmetry with
+#: :data:`INTERP_KIND`; unverified.
+EXTRAP_KIND: Dict[int, str] = {
+    0: "constant",
+    1: "linear",
+}
+
+#: Which value property of a parameter is populated, on ``PRIT:ValueType`` and
+#: ``PRCL:ValueType``.  [I] from the property sets: a ``PRCL`` carries
+#: ``ValueInteger``, ``ValueDouble`` and ``ValueUser`` and writes one of them.
+PARAM_VALUE_TYPE: Dict[int, str] = {
+    1: "integer",
+    2: "double",
+    3: "user",
+    4: "reference",
+}
+
+#: ``DIDD:ReformattingOption`` -- how a raster that does not match the project
+#: is fitted to it.  [?] -- absent from both samples; names are Media
+#: Composer's UI labels for the same choice.
+REFORMATTING_OPTION: Dict[int, str] = {
+    0: "none",
+    1: "stretch",
+    2: "center_crop",
+    3: "pad",
+}

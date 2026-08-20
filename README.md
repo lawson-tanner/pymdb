@@ -37,7 +37,8 @@ No dependencies. Python 3.8+.
 
 **Layer 1** — named, typed objects. `MOBJ` becomes `Mob`, `CDCI` becomes
 `CDCIDescriptor`, references resolve to live objects, values decode to Python
-types.
+types. Ninety-odd classes are covered — every class the reference samples'
+schema declares, not just the ones they happen to contain.
 
 ```python
 mob = f.spine_mobs[0]
@@ -63,10 +64,41 @@ f.container.owners(0x1f40)     # which entry wrote the byte at this offset
 f.container.names[0x1032e]     # 'OMFI:MOBJ:MobID'
 ```
 
-Unknown classes and unknown types never raise. A 4CC with no typed reader
-becomes a generic `MDBObject` whose properties are still readable by OMF name;
-an unrecognised `omfi:*` type yields an `Opaque` wrapper around the raw bytes.
+### The class vocabulary
+
+`mdb.objects` is a package, laid out like pyavb's: `components`,
+`trackgroups`, `effects`, `descriptors`, `locators`, `attributes`,
+`parameters`, `trackers`, `media`, `misc`. Everything is re-exported, so
+`from mdb.objects import Mob` and `mdb.Mob` both work.
+
+Most of those classes never appear in the reference samples, and that is the
+expected result rather than a gap: an MDB indexes media files, so it is full of
+mobs, descriptors and locators, and contains an effect or a marker only if
+something unusual has happened. They are defined because the samples' *schema*
+declares them — 759 property names across roughly a hundred class prefixes —
+so a file that does use one reads as a typed object rather than as a bag of
+names. Where a class's behaviour could not be checked against data, its
+docstring says so.
+
+### Unknown classes degrade, they never raise
+
+Three fallbacks, in order:
+
+1. A 4CC the library knows resolves to its class.
+2. A 4CC it does not know is looked up in **this file's own
+   `HEAD.ClassDictionary`**, and the nearest declared ancestor the library
+   *does* know is used instead. An unrecognised `CDCI` subclass from a future
+   Media Composer still reads as a picture descriptor. This is the whole
+   reason the class dictionary is in the file; ignoring it would be throwing
+   away an answer the file already gave.
+3. Failing both, a generic `MDBObject` — every property still readable by OMF
+   name, just without typed attributes.
+
+An unrecognised `omfi:*` type yields an `Opaque` wrapper around the raw bytes.
 The schema evolves — a reader that raises on next year's file is not useful.
+
+`mdb classes FILE` prints which of the three applied to every class in the
+file.
 
 ## Command line
 
@@ -80,7 +112,7 @@ mdb tree      FILE 0x10a43    walk a mob's tracks, sequences and clips
 mdb attrs     FILE 0x10a43    an object's Avid attribute tree
 mdb find      FILE "TEXT"     which objects contain this text
 mdb owner     FILE 0x1f40     which entry wrote the byte at this offset
-mdb classes   FILE            HEAD's class dictionary (the metadict)
+mdb classes   FILE            HEAD's class dictionary, and how each 4CC resolves
 mdb validate  FILE            integrity checks; exit 1 on any error
 ```
 
@@ -146,6 +178,21 @@ rediscovered:
   last; `obj.values(name)` returns all of them.
 - **Two schema IDs bind two names each** (`0x10994`, `0x10995` — `ASPI` and
   `FXPS` names collide). `validate` reports this as a warning.
+- **The class dictionary declares both `ASPI` and `ASpi`.** A 4CC differing
+  from a known one only in case is Avid's typo, not a new class, and is
+  resolved to the cased one.
+- **Descriptor and media-data classes are separate in OMF** and the MDB schema
+  declares both: `WAVD` describes, `WAVE` holds the essence; likewise
+  `AIFD`/`AIFC` and `TIFD`/`TIFF`. pyavb folds each pair together under the
+  data-class name because the AVB container does. This library keeps them
+  apart, because these files do.
+- **`DIDD` carries four exact-rational rectangles** — valid, essence, source
+  and framing — each as eight numerator/denominator properties.
+  `descriptor.rects()` groups them back up.
+- **Avid's typos are bound as written**, because that is what the file says:
+  `CDCI:AlphaSamledWidth`, `TRAK:LockNubmer`, `PCRL:ExtrapKind` (for `PRCL`),
+  `ATRE:EfffectID`, and three `SPED` properties spelled `OMIF:` rather than
+  `OMFI:`.
 - **`TOCOffsetAtClose` never matches the live TOC geometry** in any sample seen
   so far. Suspected stale breadcrumb from an earlier save; a candidate
   dirty-close detector, but unconfirmed.

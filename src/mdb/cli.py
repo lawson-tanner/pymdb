@@ -238,11 +238,51 @@ def cmd_owner(f: MDBFile, args) -> int:
 
 
 def cmd_classes(f: MDBFile, args) -> int:
+    """The class dictionary, and which Python class each 4CC resolves to.
+
+    Four answers are possible per row, and the difference matters when a file
+    from a newer Media Composer turns up.  *typed* means the library has a
+    class for that 4CC; *alias* means the 4CC differs from a known one only in
+    case, which is Avid's typo rather than a new class (the dictionary of both
+    reference samples declares ``ASPI`` and ``ASpi``); *inherited* means
+    neither, but the file's own dictionary named an ancestor the library does
+    know; *generic* means none of those, and the object still reads -- every
+    property by OMF name -- just without typed attributes.
+    """
+    from .core import class_for
+
     entries = f.class_dictionary
+    census = f.class_census()
     print("HEAD.ClassDictionary -- %d declared extension classes\n" % len(entries))
+    print("  %-6s %-8s %-24s %-11s %s"
+          % ("CLASS", "PARENT", "PYTHON CLASS", "RESOLVED", "COUNT"))
     for cd in sorted(entries, key=lambda c: c.class_4cc or ""):
-        parent = cd.parent_4cc
-        print("  %-6s %s" % (cd.class_4cc, "-> " + parent if parent else ""))
+        four_cc = cd.class_4cc or "????"
+        parent = cd.parent_4cc or ""
+        resolved = f.class_for_id(four_cc)
+        if class_for(four_cc) is not MDBObject:
+            how = "typed"
+        elif resolved is MDBObject:
+            how = "generic"
+        elif resolved.class_id and resolved.class_id.lower() == four_cc.lower():
+            how = "alias"
+        else:
+            how = "inherited"
+        count = census.get(four_cc, 0)
+        print("  %-6s %-8s %-24s %-11s %s"
+              % (four_cc, parent, resolved.__name__, how, count or "-"))
+
+    declared = {cd.class_4cc for cd in entries}
+    extra = sorted(set(census) - declared)
+    if extra:
+        print("\n  present but not declared (built-in OMF classes, which the"
+              "\n  dictionary never lists):\n")
+        for four_cc in extra:
+            resolved = f.class_for_id(four_cc)
+            print("  %-6s %-8s %-24s %-11s %s"
+                  % (four_cc, "", resolved.__name__,
+                     "typed" if resolved is not MDBObject else "generic",
+                     census[four_cc]))
     return 0
 
 

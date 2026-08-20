@@ -257,13 +257,37 @@ def _semantic(f: "MDBFile") -> Iterator[Finding]:
                       "%d mobs have no readable 32-byte MobID" % len(no_mobid),
                       no_mobid[:8])
 
-    unknown = sorted(set(f.class_census()) - set(_known_class_ids()))
-    if unknown:
+    # Classes present in the file. Split three ways, because the three mean
+    # different things: a class with its own reader is fine; one that resolves
+    # through the file's class dictionary is fine too, and worth reporting so
+    # the gap is visible; one that resolves to neither still reads, but only
+    # by OMF property name.
+    from .core import MDBObject, class_for
+
+    inherited, generic = [], []
+    for four_cc in sorted(f.class_census()):
+        if class_for(four_cc) is not MDBObject:
+            continue
+        (generic if f.class_for_id(four_cc) is MDBObject else inherited).append(four_cc)
+
+    if inherited:
+        yield Finding(INFO, "inherited-classes",
+                      "%d class(es) read through the file's own class dictionary: %s"
+                      % (len(inherited), ", ".join(inherited)))
+    if generic:
         yield Finding(INFO, "unknown-classes",
                       "%d class(es) with no typed reader: %s"
-                      % (len(unknown), ", ".join(unknown)))
+                      % (len(generic), ", ".join(generic)))
 
-
-def _known_class_ids():
-    from .core import CLASS_REGISTRY
-    return CLASS_REGISTRY.keys()
+    # A class dictionary that names a parent the file does not contain is a
+    # broken metadict -- the inheritance walk cannot follow it, and Media
+    # Composer would not have written it that way.
+    dangling = []
+    for entry in f.class_dictionary:
+        parent_ref = entry.get("OMFI:CLSD:ParentClass")
+        if isinstance(parent_ref, int) and entry.parent_4cc is None:
+            dangling.append("%s -> 0x%x" % (entry.class_4cc, parent_ref))
+    if dangling:
+        yield Finding(ERROR, "class-dictionary",
+                      "%d class dictionary entr(ies) name a parent that is not a"
+                      " CLSD object" % len(dangling), dangling[:8])
