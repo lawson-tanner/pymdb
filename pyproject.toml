@@ -18,8 +18,18 @@ classifiers = [
 ]
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/lawson-tanner/pymdb"
+Documentation = "https://pymdb.readthedocs.io"
+Repository = "https://github.com/lawson-tanner/pymdb"
+
 [project.optional-dependencies]
 test = ["pytest>=7"]
+docs = [
+    "sphinx>=7,<9",
+    "furo>=2024.8.6",
+    "sphinx-autodoc-typehints>=2.0",
+]
 
 [project.scripts]
 mdb = "mdb.cli:main"

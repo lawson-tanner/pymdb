@@ -17,7 +17,7 @@ __all__ = ["ATTR_KIND", "TRACK_TYPE", "PHYSICAL_MOB_TYPE", "USAGE_CODE",
 
 #: ``omfi:AttrKind`` -- which ATTB value property is populated.  [V]
 #: 1/2/3 verified by co-occurrence with Int/String/Obj attributes; 4 verified
-#: as the "bob" blob form (``ATTB:BobData`` + ``ATTB:BobSize``, no *Attribute).
+#: as the "bob" blob form (``ATTB:BobData`` + ``ATTB:BobSize``, no ``*Attribute``).
 ATTR_KIND: Dict[int, str] = {
     0: "null",
     1: "int",

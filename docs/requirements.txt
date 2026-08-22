@@ -1,0 +1,6 @@
+# Docs build environment, pinned loosely. Installed by readthedocs.io per
+# .readthedocs.yaml, and usable locally via:
+#   pip install -e ".[docs]"
+sphinx>=7,<9
+furo>=2024.8.6
+sphinx-autodoc-typehints>=2.0

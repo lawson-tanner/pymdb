@@ -5,6 +5,8 @@ build/
 dist/
 .pytest_cache/
 .venv/
+docs/_build/
+docs/api/**/generated/
 
 # Media databases and bins are never committed: they carry real paths,
 # server names, project and show names. Point PYMDB_SAMPLES at them instead.

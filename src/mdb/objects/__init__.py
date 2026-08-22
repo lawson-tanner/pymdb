@@ -17,19 +17,31 @@ as a typed object rather than as a bag of names.
 
 The modules mirror pyavb's layout:
 
-===========================  ==================================================
-:mod:`~mdb.objects.base`     ``OMFObject``, ``HEAD``
-:mod:`~mdb.objects.attributes` ``ATTR`` / ``ATTB`` -- the Avid attribute tree
-:mod:`~mdb.objects.locators` ``WINL``, ``MSML`` and the rest of the path classes
-:mod:`~mdb.objects.descriptors` ``MDES`` and every essence descriptor
-:mod:`~mdb.objects.misc`     links, markers, list containers, ``CLSD``
-:mod:`~mdb.objects.components` ``CPNT`` and its clips
-:mod:`~mdb.objects.trackgroups` ``TRKG``, ``MOBJ``, ``TRAK``, ``SLCT``
-:mod:`~mdb.objects.effects`  ``TKFX``, ``TNFX``, the time warps
-:mod:`~mdb.objects.parameters` ``PRIT``, ``PRLS``, ``FXPS`` and friends
-:mod:`~mdb.objects.trackers` the ``TKMN`` tracker family
-:mod:`~mdb.objects.media`    embedded essence, which an MDB never carries
-===========================  ==================================================
+.. list-table::
+   :widths: 30 70
+
+   * - :mod:`~mdb.objects.base`
+     - ``OMFObject``, ``HEAD``
+   * - :mod:`~mdb.objects.attributes`
+     - ``ATTR`` / ``ATTB`` -- the Avid attribute tree
+   * - :mod:`~mdb.objects.locators`
+     - ``WINL``, ``MSML`` and the rest of the path classes
+   * - :mod:`~mdb.objects.descriptors`
+     - ``MDES`` and every essence descriptor
+   * - :mod:`~mdb.objects.misc`
+     - links, markers, list containers, ``CLSD``
+   * - :mod:`~mdb.objects.components`
+     - ``CPNT`` and its clips
+   * - :mod:`~mdb.objects.trackgroups`
+     - ``TRKG``, ``MOBJ``, ``TRAK``, ``SLCT``
+   * - :mod:`~mdb.objects.effects`
+     - ``TKFX``, ``TNFX``, the time warps
+   * - :mod:`~mdb.objects.parameters`
+     - ``PRIT``, ``PRLS``, ``FXPS`` and friends
+   * - :mod:`~mdb.objects.trackers`
+     - the ``TKMN`` tracker family
+   * - :mod:`~mdb.objects.media`
+     - embedded essence, which an MDB never carries
 
 Everything is re-exported here, so ``from mdb.objects import Mob`` keeps
 working and ``import mdb; mdb.Mob`` does too.

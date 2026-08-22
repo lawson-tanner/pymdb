@@ -4,6 +4,8 @@ An Avid ``msmMMOB.mdb`` is a Bento container (Bento Specification 1.0d5,
 Harris & Ruben, Apple 1993), the same container OMF Interchange is built on.
 It has no header: the only correct entry point is the **last 24 bytes**.
 
+.. code-block:: text
+
     offset 0  +---------------------------------------------+
               | VALUE HEAP  (out-of-line property values)    |
               +---------------------------------------------+
