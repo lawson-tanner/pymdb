@@ -2,6 +2,8 @@
 
 Read Avid Media Composer `msmMMOB.mdb` media databases from Python.
 
+Full documentation: **[pythonmdb.readthedocs.io](https://pythonmdb.readthedocs.io)**
+
 `msmMMOB.mdb` is the index Media Composer keeps inside each Avid media folder
 (`Avid MediaFiles/MXF/1/`, alongside `msmFMID.pmr`): one entry per media file,
 with clip names, MobIDs, file paths, track structure, essence descriptors and
@@ -11,6 +13,15 @@ This library reads. It does not write: Media Composer updates these files in
 place, so treat them as read-only evidence.
 
 ## Install
+
+The package is distributed on PyPI as **`python-mdb`**; the import name stays
+`mdb`.
+
+```
+pip install python-mdb
+```
+
+To work on the library itself, install it from a checkout in editable mode:
 
 ```
 pip install -e .
@@ -200,6 +211,8 @@ cleanly.
 
 ## References
 
+- [Full documentation](https://pythonmdb.readthedocs.io) — API reference for
+  every module, built with Sphinx.
 - [pyavb](https://github.com/markreidgfx/pyavb) — the same Avid class and
   attribute vocabulary in the `.avb` bin container. Different container,
   identical semantics; the best reference for what an attribute means.
